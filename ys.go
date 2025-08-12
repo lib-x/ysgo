@@ -35,3 +35,11 @@ func applyDefaultOption(client *YSClient) {
 		client.apiBaseUrl = defaultApiBaseUrl
 	}
 }
+
+func (c *YSClient) GetApiBaseURL() string {
+	return c.apiBaseUrl
+}
+
+func (c *YSClient) GetUserEndpoint() string {
+	return c.userEndpoint
+}
