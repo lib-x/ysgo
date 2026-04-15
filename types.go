@@ -13,6 +13,14 @@ type LoginResponse struct {
 	Space     LoginSpaceInfo     `json:"kj"`
 }
 
+type SessionResponse struct {
+	User    LoginUserInfo  `json:"yh"`
+	Space   LoginSpaceInfo `json:"kj"`
+	Token   string         `json:"token,omitempty"`
+	Message string         `json:"fwxz,omitempty"`
+	Record  string         `json:"jldl,omitempty"`
+}
+
 type LoginUserInfo struct {
 	IsAdmin bool `json:"isgly"`
 }
@@ -28,6 +36,8 @@ type LoginSpaceInfo struct {
 	UploadAddress string `json:"scdz"`
 	Counter       int    `json:"jsq"`
 	CounterStage  int    `json:"jsqj"`
+	IP0           string `json:"ip0,omitempty"`
+	IP1           string `json:"ip1,omitempty"`
 }
 
 type PeriodicCheckRequest struct {
@@ -41,6 +51,7 @@ type FileListRequest struct {
 	DirectoryNumber string `json:"mlbh" form:"mlbh"`
 	OpenPassword    string `json:"kqmm" form:"kqmm"`
 	FileNumber      string `json:"wjbh" form:"wjbh"`
+	IP1             string `json:"ip1,omitempty" form:"ip1,omitempty"`
 }
 
 type DirectorySettingsRequest struct {
@@ -54,6 +65,15 @@ type DirectorySettingsRequest struct {
 	Permissions  string `json:"qx" form:"qx"`
 	Time         string `json:"sj" form:"sj"`
 	SortWeight   string `json:"pxz" form:"pxz"`
+}
+
+type DeleteFilesRequest struct {
+	DirectoryNumber string
+	OpenPassword    string
+	FileNumbers     []string
+	XFileNumbers    []string
+	LinkNumbers     []string
+	Subdirectories  []string
 }
 
 type FileInfo struct {
@@ -73,10 +93,10 @@ type DirectoryInfo struct {
 }
 
 type AuthToken struct {
-	Username  string
-	Timestamp string
+	Username string
+	Token    string
 }
 
 func (t AuthToken) String() string {
-	return "Bearer " + t.Username + ";" + t.Timestamp
+	return "Bearer " + t.Username + ";" + t.Token
 }

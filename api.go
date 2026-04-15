@@ -1,9 +1,8 @@
 package ysgo
 
 import (
-	"bytes"
+	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -15,109 +14,95 @@ const (
 )
 
 func (c *YSClient) PeriodicCheck(req *PeriodicCheckRequest) error {
-	reqURL := c.apiBaseUrl + periodicCheckPath
+	return c.PeriodicCheckContext(context.Background(), req)
+}
 
+func (c *YSClient) PeriodicCheckContext(ctx context.Context, req *PeriodicCheckRequest) error {
 	form := url.Values{}
 	form.Add("mlbh", req.DirectoryNumber)
 	form.Add("kqmm", req.OpenPassword)
 	form.Add("wjbh", req.FileNumber)
 	form.Add("gxxmsj", req.UpdateModTime)
 
-	httpReq, err := http.NewRequest("POST", reqURL, bytes.NewBufferString(form.Encode()))
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodPost, periodicCheckPath, form)
 	if err != nil {
-		return fmt.Errorf("failed to create periodic check request: %w", err)
+		return err
 	}
 
-	token := c.generateAuthToken()
-	httpReq.Header.Set("Authorization", token.String())
-	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	httpReq.Header.Set("DNT", "1")
-	httpReq.Header.Set("Pragma", "no-cache")
-
-	resp, err := c.c.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to execute periodic check request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return NewYSError(resp.StatusCode, "Periodic check failed", resp.Status)
+	if err := c.do(httpReq, nil, http.StatusOK); err != nil {
+		return fmt.Errorf("periodic check: %w", err)
 	}
 
 	return nil
 }
 
 func (c *YSClient) GetFileList(req *FileListRequest) ([]byte, error) {
-	reqURL := c.apiBaseUrl + fileListPath
+	return c.GetFileListContext(context.Background(), req)
+}
 
+func (c *YSClient) GetFileListContext(ctx context.Context, req *FileListRequest) ([]byte, error) {
 	form := url.Values{}
 	form.Add("mlbh", req.DirectoryNumber)
 	form.Add("kqmm", req.OpenPassword)
 	form.Add("wjbh", req.FileNumber)
-
-	httpReq, err := http.NewRequest("POST", reqURL, bytes.NewBufferString(form.Encode()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create file list request: %w", err)
+	if req.IP1 != "" {
+		form.Add("ip1", req.IP1)
 	}
 
-	token := c.generateAuthToken()
-	httpReq.Header.Set("Authorization", token.String())
-	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	httpReq.Header.Set("DNT", "1")
-	httpReq.Header.Set("Pragma", "no-cache")
-
-	resp, err := c.c.Do(httpReq)
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodPost, fileListPath, form)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute file list request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, NewYSError(resp.StatusCode, "Get file list failed", resp.Status)
+		return nil, err
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file list response body: %w", err)
+	var body []byte
+	if err := c.do(httpReq, &body, http.StatusOK); err != nil {
+		return nil, fmt.Errorf("get file list: %w", err)
 	}
 
 	return body, nil
 }
 
 func (c *YSClient) GetDirectoryInfo(directoryNumber string) ([]byte, error) {
-	reqURL := c.apiBaseUrl + directoryPath + "?bjbh=" + directoryNumber
+	return c.GetDirectoryInfoContext(context.Background(), directoryNumber)
+}
 
-	req, err := http.NewRequest("GET", reqURL, nil)
+func (c *YSClient) GetDirectoryInfoContext(ctx context.Context, directoryNumber string) ([]byte, error) {
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodGet, directoryPath+"?bjbh="+url.QueryEscape(directoryNumber), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create directory info request: %w", err)
+		return nil, err
 	}
 
-	token := c.generateAuthToken()
-	req.Header.Set("Authorization", token.String())
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Pragma", "no-cache")
-
-	resp, err := c.c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute directory info request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, NewYSError(resp.StatusCode, "Get directory info failed", resp.Status)
+	var body []byte
+	if err := c.do(httpReq, &body, http.StatusOK); err != nil {
+		return nil, fmt.Errorf("get directory info: %w", err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	return body, nil
+}
+
+func (c *YSClient) GetDirectoryList() ([]byte, error) {
+	return c.GetDirectoryListContext(context.Background())
+}
+
+func (c *YSClient) GetDirectoryListContext(ctx context.Context) ([]byte, error) {
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodGet, directoryPath, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory info response body: %w", err)
+		return nil, err
+	}
+
+	var body []byte
+	if err := c.do(httpReq, &body, http.StatusOK); err != nil {
+		return nil, fmt.Errorf("get directory list: %w", err)
 	}
 
 	return body, nil
 }
 
 func (c *YSClient) SetDirectorySettings(operation string, req *DirectorySettingsRequest) error {
-	reqURL := c.apiBaseUrl + directoryPath + "?cz=" + operation
+	return c.SetDirectorySettingsContext(context.Background(), operation, req)
+}
 
+func (c *YSClient) SetDirectorySettingsContext(ctx context.Context, operation string, req *DirectorySettingsRequest) error {
 	form := url.Values{}
 	form.Add("bh", req.Number)
 	form.Add("bt", req.Title)
@@ -130,38 +115,75 @@ func (c *YSClient) SetDirectorySettings(operation string, req *DirectorySettings
 	form.Add("sj", req.Time)
 	form.Add("pxz", req.SortWeight)
 
-	httpReq, err := http.NewRequest("POST", reqURL, bytes.NewBufferString(form.Encode()))
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodPost, directoryPath+"?cz="+operation, form)
 	if err != nil {
-		return fmt.Errorf("failed to create directory settings request: %w", err)
+		return err
 	}
 
-	token := c.generateAuthToken()
-	httpReq.Header.Set("Authorization", token.String())
-	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	httpReq.Header.Set("DNT", "1")
-	httpReq.Header.Set("Pragma", "no-cache")
-
-	resp, err := c.c.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to execute directory settings request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return NewYSError(resp.StatusCode, "Set directory settings failed", resp.Status)
+	if err := c.do(httpReq, nil, http.StatusOK); err != nil {
+		return fmt.Errorf("set directory settings %s: %w", operation, err)
 	}
 
 	return nil
 }
 
 func (c *YSClient) AddDirectory(req *DirectorySettingsRequest) error {
-	return c.SetDirectorySettings("add", req)
+	return c.AddDirectoryContext(context.Background(), req)
+}
+
+func (c *YSClient) AddDirectoryContext(ctx context.Context, req *DirectorySettingsRequest) error {
+	return c.SetDirectorySettingsContext(ctx, "add", req)
 }
 
 func (c *YSClient) UpdateDirectory(req *DirectorySettingsRequest) error {
-	return c.SetDirectorySettings("edit", req)
+	return c.UpdateDirectoryContext(context.Background(), req)
 }
 
-func (c *YSClient) DeleteDirectory(req *DirectorySettingsRequest) error {
-	return c.SetDirectorySettings("del", req)
+func (c *YSClient) UpdateDirectoryContext(ctx context.Context, req *DirectorySettingsRequest) error {
+	return c.SetDirectorySettingsContext(ctx, "add", req)
+}
+
+func (c *YSClient) DeleteDirectory(directoryNumber string) error {
+	return c.DeleteDirectoryContext(context.Background(), directoryNumber)
+}
+
+func (c *YSClient) DeleteDirectoryContext(ctx context.Context, directoryNumber string) error {
+	form := url.Values{}
+	form.Add("mlbh", directoryNumber)
+
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodPost, directoryPath+"?cz=del", form)
+	if err != nil {
+		return err
+	}
+
+	if err := c.do(httpReq, nil, http.StatusOK); err != nil {
+		return fmt.Errorf("delete directory: %w", err)
+	}
+
+	return nil
+}
+
+func (c *YSClient) DeleteFiles(req *DeleteFilesRequest) error {
+	return c.DeleteFilesContext(context.Background(), req)
+}
+
+func (c *YSClient) DeleteFilesContext(ctx context.Context, req *DeleteFilesRequest) error {
+	form := url.Values{}
+	form.Add("mlbh", req.DirectoryNumber)
+	form.Add("kqmm", req.OpenPassword)
+	form.Add("wjs", joinCSV(req.FileNumbers))
+	form.Add("xwjs", joinCSV(req.XFileNumbers))
+	form.Add("links", joinCSV(req.LinkNumbers))
+	form.Add("zmls", joinSubdirectories(req.Subdirectories))
+
+	httpReq, err := c.newRequestWithContext(ctx, http.MethodPost, fileListPath+"?cz=del", form)
+	if err != nil {
+		return err
+	}
+
+	if err := c.do(httpReq, nil, http.StatusOK); err != nil {
+		return fmt.Errorf("delete files: %w", err)
+	}
+
+	return nil
 }

@@ -1,3 +1,3 @@
-module github.com/ca-x/ysgo
+module github.com/lib-x/ysgo
 
 go 1.24.4
