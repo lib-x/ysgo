@@ -1,6 +1,28 @@
 # ysgo
 
-永硕 E 盘 Go SDK。
+[![CI](https://github.com/lib-x/ysgo/actions/workflows/ci.yml/badge.svg)](https://github.com/lib-x/ysgo/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/lib-x/ysgo.svg)](https://pkg.go.dev/github.com/lib-x/ysgo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/lib-x/ysgo)](https://goreportcard.com/report/github.com/lib-x/ysgo)
+[![Release](https://img.shields.io/github/v/release/lib-x/ysgo)](https://github.com/lib-x/ysgo/releases)
+
+面向 **永硕 E 盘 / ysepan / ys168** 的 Go SDK，已完成真实站点协议适配，并经过 sandbox 级真实联调验证。
+
+## 为什么用它
+
+- 支持真实会话初始化与管理员登录。
+- 支持空间访问密码。
+- 支持目录、文件、子目录的常见管理操作。
+- 支持上传、下载、删除、恢复等核心文件流程。
+- 支持 `Context`、超时、functional options 与并发安全状态管理。
+- 已提供 CI、示例、README、CHANGELOG、Release Notes 与 live integration test skeleton。
+
+## 快速入口
+
+- 模块路径：`github.com/lib-x/ysgo`
+- Go 文档：<https://pkg.go.dev/github.com/lib-x/ysgo>
+- Release 文案：`GITHUB_RELEASE.md`
+- 中文发布说明：`RELEASE_CN.md`
+- 路线图：`ROADMAP.md`
 
 ## 当前能力
 
